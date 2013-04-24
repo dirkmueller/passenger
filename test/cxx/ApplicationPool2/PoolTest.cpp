@@ -732,7 +732,7 @@ namespace tut {
 		SessionPtr session3 = pool->get(options, &ticket);
 		{
 			LockGuard l(pool->syncher);
-			ensure("(4)", !session1->getProcess()->isAlive());
+			ensure("(4)", session1->getProcess()->enabled == Process::DETACHED);
 			ensure_equals("(6)", fooGroup->getWaitlist.size(), 1u);
 			ensure_equals("(7)", pool->getWaitlist.size(), 0u);
 		}
@@ -763,9 +763,16 @@ namespace tut {
 
 		ProcessPtr process = currentSession->getProcess();
 		pool->detachProcess(currentSession->getProcess());
-		ensure(!process->isAlive());
+		{
+			LockGuard l(pool->syncher);
+			ensure(process->enabled == Process::DETACHED);
+		}
 		EVENTUALLY(5,
 			result = pool->getProcessCount() == 2;
+		);
+		currentSession.reset();
+		EVENTUALLY(5,
+			result = process->isDead();
 		);
 	}
 	
@@ -864,6 +871,18 @@ namespace tut {
 		ensure_equals(pool->superGroups.size(), 1u);
 		ensure(superGroup->isAlive());
 		ensure(!superGroup->garbageCollectable());
+	}
+
+	TEST_METHOD(34) {
+		// When detaching a process, it waits until all sessions have
+		// finished before telling the process to shut down.
+		ensure("TODO", false);
+	}
+
+	TEST_METHOD(35) {
+		// When detaching a process, it waits until the OS processes
+		// have exited before cleaning up the in-memory data structures.
+		ensure("TODO", false);
 	}
 
 	
